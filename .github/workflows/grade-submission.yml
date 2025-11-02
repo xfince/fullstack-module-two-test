@@ -38,6 +38,12 @@ jobs:
           mongodb-version: '7.0'
           mongodb-replica-set: test-rs
       
+      - name: 🔧 Install System Dependencies
+        run: |
+          echo "Installing jq for JSON processing..."
+          sudo apt-get update -qq
+          sudo apt-get install -y jq
+      
       # ============================================
       # STEP 2: VALIDATE SUBMISSION
       # ============================================
@@ -259,7 +265,7 @@ jobs:
           node grading-scripts/analyze-git-history.js > git-analysis.json
           
           echo "## 📜 Git History Analysis" >> $GITHUB_STEP_SUMMARY
-          if [ -f "git-analysis.json" ]; then
+          if [ -f "git-analysis.json" ] && jq empty git-analysis.json 2>/dev/null; then
             node -e "
               const analysis = require('./git-analysis.json');
               console.log('**Total Commits:** ' + analysis.total_commits);
@@ -267,6 +273,8 @@ jobs:
               console.log('**Meaningful Messages:** ' + analysis.commit_message_quality.meaningful);
               console.log('**Vague Messages:** ' + analysis.commit_message_quality.vague);
             " >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Git analysis output invalid or missing" >> $GITHUB_STEP_SUMMARY
           fi
       
       # ============================================
@@ -279,13 +287,18 @@ jobs:
           echo "📝 Generating code summaries..."
           node grading-scripts/code-summarizer.js > code-summaries.json
           
-          # Check file size
-          summary_size=$(wc -c < code-summaries.json)
-          echo "📊 Code summary size: $summary_size bytes"
-          
-          if [ -f "code-summaries.json" ]; then
+          # Check file size and validity
+          if [ -f "code-summaries.json" ] && jq empty code-summaries.json 2>/dev/null; then
+            summary_size=$(wc -c < code-summaries.json)
+            echo "📊 Code summary size: $summary_size bytes"
+            echo "✅ Code summary generated successfully"
             echo "code_summary_completed=true" >> $GITHUB_OUTPUT
           else
+            echo "❌ Code summary generation failed or produced invalid JSON"
+            if [ -f "code-summaries.json" ]; then
+              echo "First 500 chars of output:"
+              head -c 500 code-summaries.json
+            fi
             echo "code_summary_completed=false" >> $GITHUB_OUTPUT
           fi
       
@@ -307,24 +320,31 @@ jobs:
             exit 0
           fi
           
-          # Run GPT evaluation
+          # Run GPT evaluation (stdout to file, stderr to terminal for logging)
           node grading-scripts/gpt-evaluator.js > gpt-evaluation.json
+          EXIT_CODE=$?
           
-          if [ $? -eq 0 ] && [ -f "gpt-evaluation.json" ]; then
-            echo "✅ GPT evaluation completed"
-            echo "gpt_evaluation_completed=true" >> $GITHUB_OUTPUT
-            
-            # Add summary
-            echo "## 🤖 GPT-4o Evaluation" >> $GITHUB_STEP_SUMMARY
-            echo "✅ Evaluation completed successfully" >> $GITHUB_STEP_SUMMARY
-            
-            # Show API usage
-            if command -v jq &> /dev/null; then
+          if [ $EXIT_CODE -eq 0 ] && [ -f "gpt-evaluation.json" ]; then
+            # Verify JSON is valid
+            if jq empty gpt-evaluation.json 2>/dev/null; then
+              echo "✅ GPT evaluation completed"
+              echo "gpt_evaluation_completed=true" >> $GITHUB_OUTPUT
+              
+              # Add summary
+              echo "## 🤖 GPT-4o Evaluation" >> $GITHUB_STEP_SUMMARY
+              echo "✅ Evaluation completed successfully" >> $GITHUB_STEP_SUMMARY
+              
+              # Show API usage
               api_calls=$(jq '.metadata.total_api_calls // 0' gpt-evaluation.json)
               echo "**API Calls Made:** $api_calls" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ GPT evaluation produced invalid JSON"
+              echo "First 500 chars of output:"
+              head -c 500 gpt-evaluation.json
+              echo "gpt_evaluation_completed=false" >> $GITHUB_OUTPUT
             fi
           else
-            echo "❌ GPT evaluation failed"
+            echo "❌ GPT evaluation failed with exit code $EXIT_CODE"
             echo "gpt_evaluation_completed=false" >> $GITHUB_OUTPUT
           fi
       
