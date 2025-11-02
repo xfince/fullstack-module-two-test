@@ -22,7 +22,7 @@ async function runUnitTests() {
 
   const startTime = Date.now();
 
-  console.log('🧪 Running Unit Tests...\n');
+  console.error('🧪 Running Unit Tests...\n');
 
   // Define all test suites with their criterion mapping
   const testSuites = [
@@ -56,11 +56,11 @@ async function runUnitTests() {
 
   // Run each test suite
   for (const suite of testSuites) {
-    console.log(`\n📋 Running: ${suite.name}`);
+    console.error(`\n📋 Running: ${suite.name}`);
     
     try {
       if (!fs.existsSync(suite.file)) {
-        console.log(`   ⚠️  Test file not found: ${suite.file}`);
+        console.error(`   ⚠️  Test file not found: ${suite.file}`);
         results.test_suites[suite.name] = {
           status: 'skipped',
           reason: 'Test file not found'
@@ -91,10 +91,10 @@ async function runUnitTests() {
       results.passed += suiteResult.passed;
       results.failed += suiteResult.failed;
 
-      console.log(`   ✅ Passed: ${suiteResult.passed}/${suiteResult.total}`);
+      console.error(`   ✅ Passed: ${suiteResult.passed}/${suiteResult.total}`);
 
     } catch (error) {
-      console.log(`   ❌ Suite failed or error occurred`);
+      console.error(`   ❌ Suite failed or error occurred`);
       
       // Try to parse error output for test results
       try {
@@ -140,15 +140,15 @@ async function runUnitTests() {
   results.criteria_scores = mapTestsToCriteria(results.test_suites);
 
   // Print summary
-  console.log('\n' + '='.repeat(60));
-  console.log('📊 UNIT TEST SUMMARY');
-  console.log('='.repeat(60));
-  console.log(`Total Tests: ${results.total_tests}`);
-  console.log(`Passed: ${results.passed} ✅`);
-  console.log(`Failed: ${results.failed} ❌`);
-  console.log(`Success Rate: ${results.success_rate}%`);
-  console.log(`Execution Time: ${(results.execution_time_ms / 1000).toFixed(2)}s`);
-  console.log('='.repeat(60) + '\n');
+  console.error('\n' + '='.repeat(60));
+  console.error('📊 UNIT TEST SUMMARY');
+  console.error('='.repeat(60));
+  console.error(`Total Tests: ${results.total_tests}`);
+  console.error(`Passed: ${results.passed} ✅`);
+  console.error(`Failed: ${results.failed} ❌`);
+  console.error(`Success Rate: ${results.success_rate}%`);
+  console.error(`Execution Time: ${(results.execution_time_ms / 1000).toFixed(2)}s`);
+  console.error('='.repeat(60) + '\n');
 
   // Output JSON to stdout for workflow to capture
   console.log(JSON.stringify(results, null, 2));
