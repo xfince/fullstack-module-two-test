@@ -1,1 +1,1 @@
-https://taskflow-api.railway.app
+https://snack-and-track.vercel.app
