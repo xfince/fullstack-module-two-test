@@ -48,6 +48,7 @@ describe('Backend API Endpoints Tests', () => {
         try {
           const fs = require('fs');
           if (fs.existsSync(appPath)) {
+            console.log(`🔍 Attempting to load: ${appPath}`);
             app = require(appPath);
             // Handle both exported app and server
             if (app.app) app = app.app;
@@ -56,6 +57,7 @@ describe('Backend API Endpoints Tests', () => {
             break;
           }
         } catch (err) {
+          console.warn(`⚠️  Failed to load ${appPath}: ${err.message}`);
           continue;
         }
       }
@@ -69,7 +71,7 @@ describe('Backend API Endpoints Tests', () => {
         await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/test_db');
       }
     } catch (error) {
-      console.error('Setup error:', error.message);
+      console.error('❌ Setup error:', error.message);
     }
   }, TEST_TIMEOUT);
 
