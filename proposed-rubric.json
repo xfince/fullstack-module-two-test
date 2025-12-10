@@ -1,0 +1,123 @@
+{
+  "Full Stack Module 2 Grading Checklist": {
+    "categories": [
+      {
+        "name": "Header & Navigation",
+        "max_points": 4,
+        "criteria": [
+          "Sticky navigation bar using useEffect.",
+          "Dropdown menu on 'Menu' hover with at least 4 categories.",
+          "Dark/Light mode toggle with localStorage persistence.",
+          "Quick links to Home, Signature Dishes, Reservation Form, Chatbot, Footer."
+        ]
+      },
+      {
+        "name": "Hero Section (Carousel)",
+        "max_points": 4,
+        "criteria": [
+          "Full-width carousel with high-quality images.",
+          "Autoplay slider using JavaScript.",
+          "Typewriter animation for restaurant name.",
+          "Smooth transition effects between slides."
+        ]
+      },
+      {
+        "name": "Signature Dishes Section",
+        "max_points": 5,
+        "criteria": [
+          "Dynamically load dishes from /data/ file.",
+          "Display first 3 dishes by default with a 'Load More' button.",
+          "Filter buttons by category (Veg, Non-Veg, Chef Specials).",
+          "Hover tooltip with description and price.",
+          "Smooth state transitions on filter/load more."
+        ]
+      },
+      {
+        "name": "Menu Pages (React Router)",
+        "max_points": 5,
+        "criteria": [
+          "Dynamic routing for menu categories (e.g., /menu/starters).",
+          "Pages map over data array correctly.",
+          "Category filtering works per page.",
+          "Seamless navigation using React Router DOM.",
+          "Clean URL structure."
+        ]
+      },
+      {
+        "name": "Reservation Form",
+        "max_points": 5,
+        "criteria": [
+          "All fields present: Name, Email, Phone, Guests, Date/Time picker.",
+          "Form validation (empty fields, email regex).",
+          "Character counter for message textarea.",
+          "Reservations saved to localStorage.",
+          "Success message shown on submit."
+        ]
+      },
+      {
+        "name": "Chatbot Section",
+        "max_points": 3,
+        "criteria": [
+          "Floating button opens chatbot interface.",
+          "Scrollable chat area with bot/user messages.",
+          "Placeholder/loading state ('Bot is typing…')."
+        ]
+      },
+      {
+        "name": "Footer",
+        "max_points": 4,
+        "criteria": [
+          "Dynamic opening hours logic shows 'We’re Open/Closed'.",
+          "Social media icons linked.",
+          "Contact info displayed.",
+          "Clean design consistent with site."
+        ]
+      },
+      {
+        "name": "JavaScript Functionality",
+        "max_points": 10,
+        "criteria": [
+          "Sticky Navbar",
+          "Dropdown Menu Hover",
+          "Dark/Light Toggle",
+          "Carousel Autoplay",
+          "Typewriter Animation",
+          "Load More Dishes",
+          "Filter by Category",
+          "Form Validation (regex, character counter)",
+          "Save to localStorage",
+          "Dynamic Open/Closed Logic"
+        ]
+      },
+      {
+        "name": "Responsiveness",
+        "max_points": 4,
+        "criteria": [
+          "Fully responsive across devices (desktop, tablet, mobile).",
+          "Nav bar and dropdown adapt for mobile.",
+          "Images and carousel scale properly.",
+          "Touch-friendly UI elements."
+        ]
+      },
+      {
+        "name": "Git & GitHub",
+        "max_points": 3,
+        "criteria": [
+          "Clear semantic commits.",
+          "Proper branching strategy (dev, feature branches, PRs).",
+          "Complete README.md with team roles, features, tech stack, and live link."
+        ]
+      },
+      {
+        "name": "Deployment",
+        "max_points": 2,
+        "criteria": [
+          "Successfully deployed on Netlify/GitHub Pages/Vercel.",
+          "Site accessible via live URL and loads correctly."
+        ]
+      }
+    ]
+  }
+}
+
+
