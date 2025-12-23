@@ -1,683 +1,298 @@
 /**
  * tests/frontend/components.test.js
  * 
- * Tests for React/Next.js component implementation
- * Evaluates: Criterion 2 (Front-End Implementation)
+ * Tests for React components functionality
+ * Covers: Header, Hero, Signature Dishes, Reservation Form, Chatbot, Footer
  */
 
-const React = require('react');
-const { render, screen, waitFor } = require('@testing-library/react');
-require('@testing-library/jest-dom');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 
-const TEST_TIMEOUT = 30000;
+describe('Frontend Components Tests', () => {
+  const gradingFolder = path.join(__dirname, '../../grading-folder');
+  const componentsPath = path.join(gradingFolder, 'src/components');
 
-describe('Frontend Component Tests', () => {
-  let testResults = {
-    criterion_id: 'criterion_2',
-    total_tests: 0,
-    passed: 0,
-    failed: 0,
-    details: [],
-    components_found: []
+  // Helper function to check if file exists
+  const fileExists = (filePath) => fs.existsSync(filePath);
+
+  // Helper function to read file content
+  const readFile = (filePath) => {
+    if (fileExists(filePath)) {
+      return fs.readFileSync(filePath, 'utf8');
+    }
+    return '';
   };
 
-  const recordTest = (testName, passed, error = null) => {
-    testResults.total_tests++;
-    if (passed) {
-      testResults.passed++;
-    } else {
-      testResults.failed++;
-    }
-    testResults.details.push({
-      test: testName,
-      passed,
-      error: error ? error.message : null
-    });
-  };
+  describe('Header Component Tests (Criterion 1)', () => {
+    const headerPath = path.join(componentsPath, 'Header.jsx');
 
-  afterAll(() => {
-    console.log(JSON.stringify(testResults, null, 2));
-  });
-
-  describe('Component Structure & Organization', () => {
-    test('Project has organized component structure', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'grading-folder/frontend/src/components',
-          'components',
-          'src/components'
-        ];
-
-        let hasComponents = false;
-        let componentCount = 0;
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir);
-            const componentFiles = files.filter(f => 
-              f.endsWith('.jsx') || 
-              f.endsWith('.tsx') || 
-              f.endsWith('.js')
-            );
-            
-            if (componentFiles.length > 0) {
-              hasComponents = true;
-              componentCount = componentFiles.length;
-              testResults.components_found = componentFiles.map(f => path.basename(f));
-              break;
-            }
-          }
-        }
-
-        expect(hasComponents).toBe(true);
-        expect(componentCount).toBeGreaterThan(0);
-        recordTest('Component structure exists', true);
-      } catch (error) {
-        recordTest('Component structure exists', false, error);
-        throw error;
-      }
+    test('Header.jsx file exists', () => {
+      expect(fileExists(headerPath)).toBe(true);
     });
 
-    test('Components follow naming conventions', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components',
-          'src/components'
-        ];
-
-        let properNaming = false;
-        let componentFiles = [];
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            componentFiles = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-            break;
-          }
-        }
-
-        if (componentFiles.length > 0) {
-          // Check if components start with capital letter (PascalCase)
-          const wellNamed = componentFiles.filter(f => {
-            const basename = path.basename(f, path.extname(f));
-            return /^[A-Z]/.test(basename);
-          });
-
-          properNaming = wellNamed.length > 0;
-        }
-
-        recordTest('Component naming conventions', properNaming);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Component naming conventions', false, error);
-      }
+    test('Header uses useEffect hook for sticky navbar', () => {
+      const content = readFile(headerPath);
+      expect(content).toMatch(/useEffect/);
+      expect(content).toMatch(/scroll/i);
     });
 
-    test('Components are modular (separate files)', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
+    test('Header has dropdown menu structure', () => {
+      const content = readFile(headerPath);
+      expect(content).toMatch(/dropdown/i);
+      expect(content).toMatch(/menu/i);
+    });
 
-        let componentFiles = [];
+    test('Header has dark/light theme toggle', () => {
+      const content = readFile(headerPath);
+      expect(content).toMatch(/theme|dark|light/i);
+      expect(content).toMatch(/localStorage/);
+    });
 
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            componentFiles = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-            break;
-          }
-        }
-
-        // Multiple component files indicate modularity
-        const isModular = componentFiles.length >= 3;
-
-        expect(isModular).toBe(true);
-        recordTest('Component modularity', true);
-      } catch (error) {
-        recordTest('Component modularity', false, error);
-        throw error;
-      }
+    test('Header has navigation links', () => {
+      const content = readFile(headerPath);
+      const hasHomeLink = content.match(/home/i);
+      const hasSignatureLink = content.match(/signature/i);
+      const hasReservationLink = content.match(/reservation/i);
+      
+      expect(hasHomeLink || hasSignatureLink || hasReservationLink).toBeTruthy();
     });
   });
 
-  describe('Component Implementation Quality', () => {
-    test('Components use functional component pattern', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
+  describe('Hero Component Tests (Criterion 2)', () => {
+    const heroPath = path.join(componentsPath, 'Hero.jsx');
 
-        let usesFunctional = false;
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Check for functional component patterns
-              if (content.includes('const ') && 
-                  (content.includes('return (') || content.includes('return(')) &&
-                  (content.includes('=>') || content.includes('function'))) {
-                usesFunctional = true;
-                break;
-              }
-            }
-            
-            if (usesFunctional) break;
-          }
-        }
-
-        expect(usesFunctional).toBe(true);
-        recordTest('Functional components', true);
-      } catch (error) {
-        recordTest('Functional components', false, error);
-        throw error;
-      }
+    test('Hero.jsx file exists', () => {
+      expect(fileExists(heroPath)).toBe(true);
     });
 
-    test('Components properly export (default or named)', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
-
-        let hasExports = false;
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Check for exports
-              if (content.includes('export default') || 
-                  content.includes('export {') ||
-                  content.includes('export const')) {
-                hasExports = true;
-                break;
-              }
-            }
-            
-            if (hasExports) break;
-          }
-        }
-
-        expect(hasExports).toBe(true);
-        recordTest('Component exports', true);
-      } catch (error) {
-        recordTest('Component exports', false, error);
-        throw error;
-      }
+    test('Hero has carousel/slider functionality', () => {
+      const content = readFile(heroPath);
+      expect(content).toMatch(/carousel|slider|slide/i);
     });
 
-    test('Components import React/Next.js properly', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
+    test('Hero has autoplay mechanism using state/useEffect', () => {
+      const content = readFile(heroPath);
+      const hasAutoplay = content.match(/autoplay|setInterval|setTimeout/i);
+      const hasUseEffect = content.match(/useEffect/);
+      
+      expect(hasAutoplay || hasUseEffect).toBeTruthy();
+    });
 
-        let hasReactImports = false;
+    test('Hero has typewriter animation', () => {
+      const content = readFile(heroPath);
+      expect(content).toMatch(/typewriter|typing|animation/i);
+    });
 
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Check for React imports (or Next.js which includes React)
-              if (content.includes("from 'react'") || 
-                  content.includes('from "react"') ||
-                  content.includes("from 'next/") ||
-                  // React 17+ doesn't require import in JSX files
-                  file.endsWith('.jsx') || file.endsWith('.tsx')) {
-                hasReactImports = true;
-                break;
-              }
-            }
-            
-            if (hasReactImports) break;
-          }
-        }
-
-        expect(hasReactImports).toBe(true);
-        recordTest('React imports', true);
-      } catch (error) {
-        recordTest('React imports', false, error);
-        throw error;
-      }
+    test('Hero has transition effects', () => {
+      const content = readFile(heroPath);
+      expect(content).toMatch(/transition|fade|animate/i);
     });
   });
 
-  describe('Component Reusability', () => {
-    test('Project has reusable UI components', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
+  describe('Signature Dishes Component Tests (Criterion 3)', () => {
+    const signaturePath = path.join(componentsPath, 'Signature.jsx');
+    const dishesPath = path.join(componentsPath, 'Dishes.jsx');
+    const dataPath = path.join(gradingFolder, 'src/Data/dishes.js');
 
-        let reusableComponents = [];
-        const commonReusableNames = [
-          'button', 'input', 'card', 'modal', 'form', 
-          'header', 'footer', 'navbar', 'sidebar', 'layout',
-          'loading', 'spinner', 'alert', 'badge', 'avatar'
-        ];
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir);
-            
-            reusableComponents = files.filter(f => {
-              const basename = path.basename(f).toLowerCase();
-              return commonReusableNames.some(name => basename.includes(name));
-            });
-            
-            break;
-          }
-        }
-
-        const hasReusableComponents = reusableComponents.length > 0;
-
-        recordTest('Reusable UI components', hasReusableComponents);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Reusable UI components', false, error);
-      }
+    test('Signature.jsx or Dishes.jsx file exists', () => {
+      const signatureExists = fileExists(signaturePath);
+      const dishesExists = fileExists(dishesPath);
+      
+      expect(signatureExists || dishesExists).toBe(true);
     });
 
-    test('Components accept props for customization', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
+    test('Data file exists for dishes', () => {
+      expect(fileExists(dataPath)).toBe(true);
+    });
 
-        let usesProps = false;
+    test('Component loads dishes dynamically from data', () => {
+      const signatureContent = readFile(signaturePath);
+      const dishesContent = readFile(dishesPath);
+      const combinedContent = signatureContent + dishesContent;
+      
+      expect(combinedContent).toMatch(/import.*dishes|from.*data|dishes\.js/i);
+    });
 
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
+    test('Component has load more functionality', () => {
+      const signatureContent = readFile(signaturePath);
+      const dishesContent = readFile(dishesPath);
+      const combinedContent = signatureContent + dishesContent;
+      
+      expect(combinedContent).toMatch(/load.*more|show.*more|view.*more/i);
+    });
 
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Check for props usage
-              if (content.includes('props.') || 
-                  content.includes('{ ') && content.includes(' }') ||
-                  content.match(/const \w+ = \([^)]*\{[^}]*\}/)) {
-                usesProps = true;
-                break;
-              }
-            }
-            
-            if (usesProps) break;
-          }
-        }
+    test('Component has filter functionality', () => {
+      const signatureContent = readFile(signaturePath);
+      const dishesContent = readFile(dishesPath);
+      const combinedContent = signatureContent + dishesContent;
+      
+      expect(combinedContent).toMatch(/filter|category/i);
+    });
 
-        expect(usesProps).toBe(true);
-        recordTest('Props usage', true);
-      } catch (error) {
-        recordTest('Props usage', false, error);
-        throw error;
-      }
+    test('Component has hover tooltip or description display', () => {
+      const signatureContent = readFile(signaturePath);
+      const dishesContent = readFile(dishesPath);
+      const combinedContent = signatureContent + dishesContent;
+      
+      expect(combinedContent).toMatch(/tooltip|hover|description|price/i);
     });
   });
 
-  describe('JSX/TSX Syntax', () => {
-    test('Components use proper JSX syntax', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
+  describe('Reservation Form Component Tests (Criterion 5)', () => {
+    const formPath = path.join(componentsPath, 'Form.jsx');
 
-        let usesJSX = false;
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Check for JSX syntax
-              if (content.includes('<') && content.includes('>') &&
-                  (content.includes('</') || content.includes('/>'))) {
-                usesJSX = true;
-                break;
-              }
-            }
-            
-            if (usesJSX) break;
-          }
-        }
-
-        expect(usesJSX).toBe(true);
-        recordTest('JSX syntax', true);
-      } catch (error) {
-        recordTest('JSX syntax', false, error);
-        throw error;
-      }
+    test('Form.jsx file exists', () => {
+      expect(fileExists(formPath)).toBe(true);
     });
 
-    test('Components use proper HTML semantics', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
+    test('Form has required input fields', () => {
+      const content = readFile(formPath);
+      const hasName = content.match(/name/i);
+      const hasEmail = content.match(/email/i);
+      const hasPhone = content.match(/phone/i);
+      const hasGuests = content.match(/guest/i);
+      const hasDate = content.match(/date/i);
+      
+      expect(hasName && hasEmail).toBeTruthy();
+      expect(hasPhone || hasGuests || hasDate).toBeTruthy();
+    });
 
-        let usesSemanticHTML = false;
-        const semanticTags = [
-          '<header', '<footer', '<nav', '<main', '<section', 
-          '<article', '<aside', '<form', '<button'
-        ];
+    test('Form has validation logic', () => {
+      const content = readFile(formPath);
+      expect(content).toMatch(/validation|validate|error|required/i);
+    });
 
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
+    test('Form has email regex validation', () => {
+      const content = readFile(formPath);
+      expect(content).toMatch(/email.*regex|regex.*email|@.*\.|\..*@/i);
+    });
 
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Check for semantic HTML tags
-              if (semanticTags.some(tag => content.includes(tag))) {
-                usesSemanticHTML = true;
-                break;
-              }
-            }
-            
-            if (usesSemanticHTML) break;
-          }
-        }
+    test('Form has character counter', () => {
+      const content = readFile(formPath);
+      expect(content).toMatch(/character.*count|count.*character|length|maxLength/i);
+    });
 
-        recordTest('Semantic HTML', usesSemanticHTML);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Semantic HTML', false, error);
-      }
+    test('Form saves to localStorage', () => {
+      const content = readFile(formPath);
+      expect(content).toMatch(/localStorage/);
+    });
+
+    test('Form has success message', () => {
+      const content = readFile(formPath);
+      expect(content).toMatch(/success|submitted|thank.*you|confirmation/i);
     });
   });
 
-  describe('Component Separation of Concerns', () => {
-    test('Logic and presentation are properly separated', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
+  describe('Chatbot Component Tests (Criterion 6)', () => {
+    const chatPath = path.join(componentsPath, 'ChatPopup.jsx');
+    const altChatPath = path.join(componentsPath, 'Chatbot.jsx');
 
-        let hasSeparation = false;
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-
-            // Check if components use hooks for logic separation
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              if ((content.includes('useState') || 
-                   content.includes('useEffect') ||
-                   content.includes('useCallback')) &&
-                  content.includes('return (')) {
-                hasSeparation = true;
-                break;
-              }
-            }
-            
-            if (hasSeparation) break;
-          }
-        }
-
-        recordTest('Separation of concerns', hasSeparation);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Separation of concerns', false, error);
-      }
+    test('ChatPopup.jsx or Chatbot.jsx file exists', () => {
+      const chatExists = fileExists(chatPath);
+      const altChatExists = fileExists(altChatPath);
+      
+      expect(chatExists || altChatExists).toBe(true);
     });
 
-    test('No excessive prop drilling (max 2-3 levels)', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
+    test('Chatbot has floating button', () => {
+      const content = readFile(chatPath) + readFile(altChatPath);
+      expect(content).toMatch(/floating|fixed|button/i);
+    });
 
-        let hasMinimalPropDrilling = true;
+    test('Chatbot has scrollable chat area', () => {
+      const content = readFile(chatPath) + readFile(altChatPath);
+      expect(content).toMatch(/scroll|overflow|chat.*area|messages/i);
+    });
 
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Look for excessive prop passing patterns
-              // This is a heuristic - checking for many props being passed
-              const propMatches = content.match(/\w+={[^}]+}/g);
-              if (propMatches && propMatches.length > 10) {
-                // Might indicate prop drilling, but not necessarily bad
-                // We'll be lenient here
-              }
-            }
-          }
-        }
-
-        recordTest('Minimal prop drilling', hasMinimalPropDrilling);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Minimal prop drilling', false, error);
-      }
+    test('Chatbot has loading/typing indicator', () => {
+      const content = readFile(chatPath) + readFile(altChatPath);
+      expect(content).toMatch(/typing|loading|bot.*is|placeholder/i);
     });
   });
 
-  describe('Component Size & Complexity', () => {
-    test('Components are reasonably sized (< 300 lines)', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
+  describe('Footer Component Tests (Criterion 7)', () => {
+    const footerPath = path.join(componentsPath, 'Footer.jsx');
 
-        let allReasonablySized = true;
-        let largeComponents = [];
+    test('Footer.jsx file exists', () => {
+      expect(fileExists(footerPath)).toBe(true);
+    });
 
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
+    test('Footer has dynamic opening hours logic', () => {
+      const content = readFile(footerPath);
+      expect(content).toMatch(/open|closed|hours/i);
+      expect(content).toMatch(/Date|time|hour/i);
+    });
 
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              const lineCount = content.split('\n').length;
-              
-              if (lineCount > 300) {
-                allReasonablySized = false;
-                largeComponents.push(path.basename(file));
-              }
-            }
-          }
-        }
+    test('Footer has social media links', () => {
+      const content = readFile(footerPath);
+      expect(content).toMatch(/social|facebook|twitter|instagram|linkedin/i);
+    });
 
-        recordTest('Component size', allReasonablySized);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Component size', false, error);
-      }
+    test('Footer has contact information', () => {
+      const content = readFile(footerPath);
+      expect(content).toMatch(/contact|phone|email|address/i);
     });
   });
 
-  describe('Styling Approach', () => {
-    test('Components have styling (CSS/Tailwind/styled-components)', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
+  describe('JavaScript Functionality Tests (Criterion 8)', () => {
+    const allComponents = fs.existsSync(componentsPath) 
+      ? fs.readdirSync(componentsPath).filter(f => f.endsWith('.jsx'))
+      : [];
 
-        let hasStyling = false;
+    test('Project uses React hooks (useState, useEffect)', () => {
+      let hasUseState = false;
+      let hasUseEffect = false;
 
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir);
+      allComponents.forEach(file => {
+        const content = readFile(path.join(componentsPath, file));
+        if (content.includes('useState')) hasUseState = true;
+        if (content.includes('useEffect')) hasUseEffect = true;
+      });
 
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Check for various styling approaches
-              if (content.includes('className=') ||
-                  content.includes('style={') ||
-                  content.includes('styled.') ||
-                  content.includes('css`') ||
-                  file.endsWith('.module.css') ||
-                  file.endsWith('.module.scss')) {
-                hasStyling = true;
-                break;
-              }
-            }
-            
-            if (hasStyling) break;
-          }
-        }
-
-        expect(hasStyling).toBe(true);
-        recordTest('Component styling', true);
-      } catch (error) {
-        recordTest('Component styling', false, error);
-        throw error;
-      }
+      expect(hasUseState).toBe(true);
+      expect(hasUseEffect).toBe(true);
     });
 
-    test('Styling is consistent across components', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
+    test('Project has localStorage implementation', () => {
+      let hasLocalStorage = false;
 
-        let stylingApproaches = new Set();
+      allComponents.forEach(file => {
+        const content = readFile(path.join(componentsPath, file));
+        if (content.includes('localStorage')) hasLocalStorage = true;
+      });
 
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
+      expect(hasLocalStorage).toBe(true);
+    });
 
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              if (content.includes('className=')) stylingApproaches.add('className');
-              if (content.includes('styled.')) stylingApproaches.add('styled-components');
-              if (content.includes('style={')) stylingApproaches.add('inline-styles');
-            }
-          }
+    test('Project has event handlers', () => {
+      let hasEventHandlers = false;
+
+      allComponents.forEach(file => {
+        const content = readFile(path.join(componentsPath, file));
+        if (content.match(/onClick|onChange|onSubmit|onHover/)) {
+          hasEventHandlers = true;
         }
+      });
 
-        // Consistency is good, but mixing is sometimes necessary
-        const isConsistent = stylingApproaches.size <= 2;
+      expect(hasEventHandlers).toBe(true);
+    });
 
-        recordTest('Styling consistency', isConsistent);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Styling consistency', false, error);
-      }
+    test('Project has form validation logic', () => {
+      const formContent = readFile(path.join(componentsPath, 'Form.jsx'));
+      expect(formContent).toMatch(/validation|validate|error|regex/i);
+    });
+
+    test('Project has filter/category functionality', () => {
+      let hasFilter = false;
+
+      allComponents.forEach(file => {
+        const content = readFile(path.join(componentsPath, file));
+        if (content.match(/filter|category/i)) {
+          hasFilter = true;
+        }
+      });
+
+      expect(hasFilter).toBe(true);
     });
   });
-
-  describe('Component Comments & Documentation', () => {
-    test('Complex components have helpful comments', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'components'
-        ];
-
-        let hasComments = false;
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Check for comments
-              if (content.includes('//') || content.includes('/*')) {
-                hasComments = true;
-                break;
-              }
-            }
-            
-            if (hasComments) break;
-          }
-        }
-
-        recordTest('Component comments', hasComments);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Component comments', false, error);
-      }
-    });
-  });
-
-  // Helper function
-  function getAllFiles(dir, fileList = []) {
-    try {
-      if (fs.existsSync(dir)) {
-        const files = fs.readdirSync(dir);
-        
-        files.forEach(file => {
-          const filePath = path.join(dir, file);
-          const stat = fs.statSync(filePath);
-          
-          if (stat.isDirectory()) {
-            getAllFiles(filePath, fileList);
-          } else {
-            fileList.push(filePath);
-          }
-        });
-      }
-    } catch (error) {
-      // Ignore errors
-    }
-    
-    return fileList;
-  }
 });
-
-// module.exports = { testResults };

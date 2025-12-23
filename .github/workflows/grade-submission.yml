@@ -32,11 +32,9 @@ jobs:
         with:
           node-version: '20'
       
-      - name: 🗄️ Setup MongoDB
-        uses: supercharge/mongodb-github-action@1.10.0
-        with:
-          mongodb-version: '7.0'
-          mongodb-replica-set: test-rs
+      # MongoDB not needed for Module 2 (Frontend-only React/Vite project)
+      # - name: 🗄️ Setup MongoDB
+      #   uses: supercharge/mongodb-github-action@1.10.0
       
       - name: 🔧 Install System Dependencies
         run: |
@@ -60,16 +58,16 @@ jobs:
             exit 0
           fi
           
-          # Check for frontend folder
-          if [ ! -d "grading-folder/frontend" ]; then
-            echo "⚠️  WARNING: grading-folder/frontend/ not found"
-            echo "missing_frontend=true" >> $GITHUB_OUTPUT
+          # Check for src folder (Module 2 React/Vite structure)
+          if [ ! -d "grading-folder/src" ]; then
+            echo "⚠️  WARNING: grading-folder/src/ not found"
+            echo "missing_src=true" >> $GITHUB_OUTPUT
           fi
           
-          # Check for backend folder
-          if [ ! -d "grading-folder/backend" ]; then
-            echo "⚠️  WARNING: grading-folder/backend/ not found"
-            echo "missing_backend=true" >> $GITHUB_OUTPUT
+          # Check for package.json in grading-folder
+          if [ ! -f "grading-folder/package.json" ]; then
+            echo "⚠️  WARNING: grading-folder/package.json not found"
+            echo "missing_grading_package=true" >> $GITHUB_OUTPUT
           fi
           
           # Check for deployment URL
@@ -101,61 +99,52 @@ jobs:
       - name: 📦 Install Grading Script Dependencies
         run: |
           echo "📦 Installing grading script dependencies..."
-          cd grading-scripts
-          npm install
-          cd ..
+          # Dependencies are in root package.json for Module 2
+          npm install || echo "⚠️  Root npm install had issues"
       
-      - name: 📦 Install Frontend Dependencies
-        if: steps.validate.outputs.validation_failed != 'true' && steps.validate.outputs.missing_frontend != 'true'
+      - name: 📦 Install Grading Folder Dependencies (React/Vite)
+        if: steps.validate.outputs.validation_failed != 'true' && steps.validate.outputs.missing_grading_package != 'true'
         continue-on-error: true
         run: |
-          echo "📦 Installing frontend dependencies..."
+          echo "📦 Installing grading-folder dependencies..."
+          cd grading-folder
           if [ -f "package.json" ]; then
-            npm install --legacy-peer-deps || echo "⚠️  Frontend dependencies installation had issues"
+            npm install --legacy-peer-deps || echo "⚠️  Grading folder dependencies installation had issues"
           fi
-      
-      - name: 📦 Install Backend Dependencies
-        if: steps.validate.outputs.validation_failed != 'true' && steps.validate.outputs.missing_backend != 'true'
-        continue-on-error: true
-        run: |
-          echo "📦 Installing backend dependencies..."
-          if [ -d "server" ] && [ -f "server/package.json" ]; then
-            cd server && npm install --legacy-peer-deps || echo "⚠️  Backend dependencies installation had issues"
-            cd ..
-          elif [ -d "backend" ] && [ -f "backend/package.json" ]; then
-            cd backend && npm install --legacy-peer-deps || echo "⚠️  Backend dependencies installation had issues"
-            cd ..
-          fi
+          cd ..
       
       # ============================================
       # STEP 4: BUILD PROJECT
       # ============================================
-      - name: 🏗️  Build Frontend
+      - name: 🏗️  Build React/Vite Project
         id: build_frontend
         if: steps.validate.outputs.validation_failed != 'true'
         continue-on-error: true
         run: |
-          echo "🏗️  Building frontend..."
+          echo "🏗️  Building React/Vite project..."
+          cd grading-folder
           
-          # Create .env.local for build if needed
-          if [ ! -f ".env.local" ]; then
-            echo "Creating temporary .env.local for build..."
-            cat > .env.local << EOF
-          NEXT_PUBLIC_API_URL=http://localhost:5000
+          # Create .env for build if needed (Vite uses .env)
+          if [ ! -f ".env" ] && [ ! -f ".env.production" ]; then
+            echo "Creating temporary .env for build..."
+            cat > .env << EOF
+          VITE_APP_NAME=Restaurant
           NODE_ENV=production
           EOF
           fi
           
-          # Try to build
-          npm run build 2>&1 | tee build.log || {
+          # Try to build with Vite
+          npm run build 2>&1 | tee ../build.log || {
             echo "❌ Build failed"
             echo "build_failed=true" >> $GITHUB_OUTPUT
             echo "build_error<<EOF" >> $GITHUB_OUTPUT
-            tail -50 build.log >> $GITHUB_OUTPUT
+            tail -50 ../build.log >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
+            cd ..
             exit 0
           }
           
+          cd ..
           echo "✅ Build successful"
           echo "build_failed=false" >> $GITHUB_OUTPUT
       
@@ -179,46 +168,18 @@ jobs:
       - name: 🔧 Setup Test Environment
         if: steps.validate.outputs.validation_failed != 'true'
         run: |
-          echo "🔧 Setting up test environment..."
+          echo "🔧 Setting up test environment for Module 2..."
           
-          # Create test .env file
+          # Create test .env file (minimal for frontend tests)
           cat > .env.test << EOF
           NODE_ENV=test
-          MONGODB_URI=mongodb://localhost:27017/test_db
-          JWT_SECRET=test_secret_key_for_grading_123456
-          PORT=5000
-          FRONTEND_URL=http://localhost:3000
+          VITE_APP_NAME=Restaurant
           EOF
           
-          # Copy to various locations where it might be needed
-          cp .env.test .env || true
-          cp .env.test server/.env 2>/dev/null || true
-          cp .env.test backend/.env 2>/dev/null || true
+          # Copy to grading-folder if needed
+          cp .env.test grading-folder/.env 2>/dev/null || true
           
           echo "✅ Test environment ready"
-      
-      - name: � Install MongoDB Driver for Testing
-        run: |
-          echo "📦 Installing mongodb package for connection test..."
-          npm install mongodb --no-save
-      
-      - name: ️  Verify MongoDB Connection
-        continue-on-error: true
-        run: |
-          echo "🗄️  Testing MongoDB connection..."
-          node -e "
-            const { MongoClient } = require('mongodb');
-            const client = new MongoClient('mongodb://localhost:27017');
-            client.connect()
-              .then(() => {
-                console.log('✅ MongoDB connection successful');
-                return client.close();
-              })
-              .catch(err => {
-                console.error('❌ MongoDB connection failed:', err.message);
-                process.exit(1);
-              });
-          "
       
       # ============================================
       # STEP 6: RUN UNIT TESTS
@@ -229,8 +190,6 @@ jobs:
         continue-on-error: true
         env:
           NODE_ENV: test
-          MONGODB_URI: mongodb://localhost:27017/test_db
-          JWT_SECRET: test_secret_key_for_grading_123456
         run: |
           echo "🧪 Running unit tests..." >&2
           node grading-scripts/run-unit-tests.js > unit-test-results.json
@@ -247,14 +206,10 @@ jobs:
             echo "## 🧪 Unit Test Results" >> $GITHUB_STEP_SUMMARY
             node -e "
               const results = require('./unit-test-results.json');
-              console.log('**Total Tests:** ' + results.total);
+              console.log('**Total Tests:** ' + results.total_tests);
               console.log('**Passed:** ' + results.passed + ' ✅');
               console.log('**Failed:** ' + results.failed + ' ❌');
-              console.log('**Success Rate:** ' + results.successRate + '%');
-            " >> $GITHUB_STEP_SUMMARY
-          fi
-      
-      # ============================================
+              console.log('**Success Rate:** ' + results.success_rate + '%');
       # STEP 7: ANALYZE GIT HISTORY
       # ============================================
       - name: 📜 Analyze Git History
@@ -362,11 +317,8 @@ jobs:
             DEPLOY_URL=$(cat DEPLOYMENT_URL.txt | tr -d '\r\n' | xargs)
             echo "Testing URL: $DEPLOY_URL"
             
-            # Install Playwright if not already installed
-            npx playwright install chromium --with-deps
-            
-            # Run deployment tests
-            node grading-scripts/test-deployment.js "$DEPLOY_URL" > deployment-test.json
+            # Run deployment tests (using Jest tests in tests/deployment/)
+            npm test tests/deployment/ -- --json > deployment-test.json || echo "Deployment tests completed with issues"
             
             if [ $? -eq 0 ]; then
               echo "deployment_test_completed=true" >> $GITHUB_OUTPUT

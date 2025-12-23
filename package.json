@@ -1,35 +1,39 @@
 {
-  "name": "student-grading-system",
+  "name": "module-two-grading-system",
   "version": "1.0.0",
-  "description": "Automated grading scripts for full-stack projects",
-  "main": "generate-report.js",
+  "description": "Automated grading scripts for React/Vite restaurant website projects (Module 2)",
+  "main": "grading-scripts/generate-report.js",
   "scripts": {
-    "test": "jest",
-    "grade": "node generate-report.js",
-    "build": "cd grading-folder/frontend && npm install && npm run build",
-    "install:all": "npm install && cd grading-scripts && npm install && cd ../grading-folder/frontend && npm install && cd ../backend && npm install"
+    "test": "jest --verbose",
+    "test:all": "jest --coverage",
+    "grade": "node run-grading.js",
+    "grade:unit": "node grading-scripts/run-unit-tests.js",
+    "grade:gpt": "node grading-scripts/gpt-evaluator.js",
+    "grade:report": "node grading-scripts/generate-report.js",
+    "summarize": "node grading-scripts/code-summarizer.js",
+    "analyze:git": "node grading-scripts/analyze-git-history.js",
+    "install:grading": "npm install && cd grading-folder && npm install",
+    "start": "node run-grading.js"
   },
   "dependencies": {
     "openai": "^4.20.0",
-    "axios": "^1.6.0"
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "supertest": "^6.3.3",
-    "@testing-library/react": "^14.1.0",
-    "@testing-library/jest-dom": "^6.1.4",
-    "playwright": "^1.40.0",
-    "mongoose": "^8.0.0",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "express": "^4.18.2",
-    "dotenv": "^16.3.1",
-    "cors": "^2.8.5",
-    "express-validator": "^7.0.1",
-    "socket.io": "^4.6.0",
-    "nodemailer": "^6.9.7"
+    "@types/jest": "^29.5.0",
+    "jest-environment-node": "^29.7.0"
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "keywords": [
+    "grading",
+    "automated-testing",
+    "react",
+    "vite",
+    "education"
+  ],
+  "author": "Grading System",
+  "license": "MIT"
 }

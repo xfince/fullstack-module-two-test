@@ -158,8 +158,8 @@ function generateReport() {
       };
     }
 
-    if (criterion.id === 'criterion_16' && deploymentTest) {
-      // Deployment
+    if (criterion.id === 'criterion_11' && deploymentTest) {
+      // Deployment (Module 2 uses criterion_11)
       const deployResult = deploymentTest;
       criterionResult.deployment_url = deployResult.deployment_url;
       criterionResult.deployment_status = deployResult.passed > 0 ? 'accessible' : 'failed';

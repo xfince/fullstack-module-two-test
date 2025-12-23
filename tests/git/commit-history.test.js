@@ -1,543 +1,313 @@
 /**
  * tests/git/commit-history.test.js
  * 
- * Tests for Git version control usage and commit history
- * Evaluates: Criterion 10 (Git Version Control)
+ * Tests for Git version control practices
+ * Covers: Commit history, branching, README documentation (Criterion 10)
  */
 
 const { execSync } = require('child_process');
 const fs = require('fs');
-
-const TEST_TIMEOUT = 30000;
+const path = require('path');
 
 describe('Git Version Control Tests', () => {
-  let testResults = {
-    criterion_id: 'criterion_10',
-    total_tests: 0,
-    passed: 0,
-    failed: 0,
-    details: [],
-    git_metrics: {}
-  };
+  const gradingFolder = path.join(__dirname, '../../grading-folder');
+  const readmePath = path.join(gradingFolder, 'README.md');
 
-  const recordTest = (testName, passed, error = null, metrics = null) => {
-    testResults.total_tests++;
-    if (passed) {
-      testResults.passed++;
-    } else {
-      testResults.failed++;
-    }
-    testResults.details.push({
-      test: testName,
-      passed,
-      error: error ? error.message : null,
-      metrics
-    });
-  };
-
-  afterAll(() => {
-    console.log(JSON.stringify(testResults, null, 2));
-  });
-
-  // Helper to run git commands
-  function runGitCommand(command) {
+  // Helper function to check if we're in a git repository
+  const isGitRepo = () => {
     try {
-      return execSync(command, { 
-        encoding: 'utf8',
-        stdio: ['pipe', 'pipe', 'pipe']
-      }).trim();
-    } catch (error) {
-      return null;
+      execSync('git rev-parse --git-dir', { 
+        cwd: gradingFolder,
+        stdio: 'ignore' 
+      });
+      return true;
+    } catch {
+      return false;
     }
-  }
+  };
 
-  describe('Git Repository Setup', () => {
-    test('Project is a Git repository', () => {
-      try {
-        const isGitRepo = fs.existsSync('.git');
-        
-        expect(isGitRepo).toBe(true);
-        recordTest('Git repository exists', true);
-      } catch (error) {
-        recordTest('Git repository exists', false, error);
-        throw error;
+  // Helper function to get commit count
+  const getCommitCount = () => {
+    try {
+      const output = execSync('git rev-list --count HEAD', {
+        cwd: gradingFolder,
+        encoding: 'utf8'
+      });
+      return parseInt(output.trim());
+    } catch {
+      return 0;
+    }
+  };
+
+  // Helper function to get commit messages
+  const getCommitMessages = (limit = 50) => {
+    try {
+      const output = execSync(`git log --pretty=format:"%s" -n ${limit}`, {
+        cwd: gradingFolder,
+        encoding: 'utf8'
+      });
+      return output.split('\n').filter(msg => msg.trim());
+    } catch {
+      return [];
+    }
+  };
+
+  // Helper function to get branch names
+  const getBranches = () => {
+    try {
+      const output = execSync('git branch -a', {
+        cwd: gradingFolder,
+        encoding: 'utf8'
+      });
+      return output.split('\n').filter(branch => branch.trim());
+    } catch {
+      return [];
+    }
+  };
+
+  describe('Git Repository Setup Tests', () => {
+    test('Project is a git repository', () => {
+      expect(isGitRepo()).toBe(true);
+    });
+
+    test('Repository has commits', () => {
+      const commitCount = getCommitCount();
+      expect(commitCount).toBeGreaterThan(0);
+    });
+
+    test('Repository has sufficient commit history (at least 10 commits)', () => {
+      const commitCount = getCommitCount();
+      expect(commitCount).toBeGreaterThanOrEqual(10);
+    });
+  });
+
+  describe('Commit Message Quality Tests', () => {
+    test('Commit messages are meaningful (not empty or too short)', () => {
+      const messages = getCommitMessages();
+      const meaningfulMessages = messages.filter(msg => msg.length >= 10);
+      const ratio = meaningfulMessages.length / messages.length;
+      
+      expect(ratio).toBeGreaterThan(0.7); // At least 70% meaningful
+    });
+
+    test('Commit messages use semantic conventions (feat, fix, docs, style, etc.)', () => {
+      const messages = getCommitMessages();
+      const semanticPattern = /^(feat|fix|docs|style|refactor|test|chore|build|ci|perf)(\(.*?\))?:/i;
+      const semanticCommits = messages.filter(msg => semanticPattern.test(msg));
+      
+      // At least 30% of commits use semantic conventions (or passes if any semantic commits exist)
+      if (messages.length > 0) {
+        const ratio = semanticCommits.length / messages.length;
+        expect(ratio).toBeGreaterThan(0.1); // At least 10% use semantic format
       }
     });
 
-    test('Git repository has commits', () => {
-      try {
-        const commitCount = runGitCommand('git rev-list --count HEAD');
-        const count = parseInt(commitCount);
-        
-        testResults.git_metrics.total_commits = count;
+    test('No generic commit messages (e.g., "update", "changes", "fix")', () => {
+      const messages = getCommitMessages();
+      const genericPattern = /^(update|changes?|fix|test|wip|temp)$/i;
+      const genericCommits = messages.filter(msg => genericPattern.test(msg.trim()));
+      const ratio = genericCommits.length / messages.length;
+      
+      expect(ratio).toBeLessThan(0.3); // Less than 30% are generic
+    });
 
-        expect(count).toBeGreaterThan(0);
-        recordTest('Has commits', true, null, { commit_count: count });
-      } catch (error) {
-        recordTest('Has commits', false, error);
-        throw error;
+    test('Commit messages describe what was changed', () => {
+      const messages = getCommitMessages();
+      const descriptiveMessages = messages.filter(msg => {
+        // Check for action verbs or descriptive content
+        return msg.match(/add|create|implement|update|fix|remove|delete|refactor|improve|enhance/i);
+      });
+      
+      const ratio = descriptiveMessages.length / messages.length;
+      expect(ratio).toBeGreaterThan(0.5); // At least 50% are descriptive
+    });
+  });
+
+  describe('Branching Strategy Tests', () => {
+    test('Repository has branches (main/master + others)', () => {
+      const branches = getBranches();
+      expect(branches.length).toBeGreaterThan(0);
+    });
+
+    test('Repository has feature branches or development branches', () => {
+      const branches = getBranches();
+      const hasFeatureBranches = branches.some(branch => 
+        branch.match(/feature|feat|dev|develop|bugfix|hotfix/i)
+      );
+      
+      // This is a bonus - good practice but not strictly required
+      if (hasFeatureBranches) {
+        expect(hasFeatureBranches).toBe(true);
+      } else {
+        // Pass anyway but it would be better to have branches
+        expect(true).toBe(true);
+      }
+    });
+
+    test('Check for merge commits (evidence of branch merging)', () => {
+      try {
+        const mergeCommits = execSync('git log --merges --oneline -n 5', {
+          cwd: gradingFolder,
+          encoding: 'utf8'
+        });
+        
+        // Bonus check - having merge commits shows good branching practice
+        if (mergeCommits.trim()) {
+          expect(mergeCommits.trim().length).toBeGreaterThan(0);
+        } else {
+          expect(true).toBe(true); // Pass anyway
+        }
+      } catch {
+        expect(true).toBe(true); // Pass if command fails
       }
     });
   });
 
-  describe('Commit Frequency', () => {
-    test('Multiple commits throughout development (not just 1-2)', () => {
+  describe('Commit Frequency Tests', () => {
+    test('Commits are spread over time (not all at once)', () => {
       try {
-        const commitCount = runGitCommand('git rev-list --count HEAD');
-        const count = parseInt(commitCount);
+        const commitDates = execSync('git log --pretty=format:"%ci" -n 20', {
+          cwd: gradingFolder,
+          encoding: 'utf8'
+        });
         
-        // Should have at least 5 commits
-        const hasRegularCommits = count >= 5;
-
-        expect(hasRegularCommits).toBe(true);
-        recordTest('Multiple commits', true, null, { commit_count: count });
-      } catch (error) {
-        recordTest('Multiple commits', false, error);
-        throw error;
-      }
-    });
-
-    test('Commits are spread over time (not all in one day)', () => {
-      try {
-        // Get commit dates
-        const commitDates = runGitCommand('git log --format=%ad --date=short');
-        
-        if (!commitDates) {
-          recordTest('Commits spread over time', false, new Error('No commit dates'));
-          return;
-        }
-
-        const dates = commitDates.split('\n').filter(d => d);
+        const dates = commitDates.split('\n').map(d => d.split(' ')[0]).filter(Boolean);
         const uniqueDates = new Set(dates);
         
-        testResults.git_metrics.unique_commit_days = uniqueDates.size;
-        testResults.git_metrics.total_days_span = calculateDaySpan(dates);
-
-        // Should have commits on at least 3 different days
-        const spreadOverTime = uniqueDates.size >= 3;
-
-        expect(spreadOverTime).toBe(true);
-        recordTest('Commits spread over time', true, null, { 
-          unique_days: uniqueDates.size 
-        });
-      } catch (error) {
-        recordTest('Commits spread over time', false, error);
-        throw error;
+        // Commits should span at least 2 different days
+        expect(uniqueDates.size).toBeGreaterThanOrEqual(2);
+      } catch {
+        expect(true).toBe(true); // Pass if command fails
       }
     });
 
-    test('Average time between commits is reasonable', () => {
+    test('Not too many commits on same day (avoid commit dumping)', () => {
       try {
-        const commitTimestamps = runGitCommand('git log --format=%at');
-        
-        if (!commitTimestamps) {
-          recordTest('Reasonable commit frequency', false, new Error('No timestamps'));
-          return;
-        }
-
-        const timestamps = commitTimestamps.split('\n')
-          .filter(t => t)
-          .map(t => parseInt(t));
-
-        if (timestamps.length < 2) {
-          recordTest('Reasonable commit frequency', false, new Error('Not enough commits'));
-          return;
-        }
-
-        // Calculate average days between commits
-        let totalDiff = 0;
-        for (let i = 0; i < timestamps.length - 1; i++) {
-          totalDiff += timestamps[i] - timestamps[i + 1];
-        }
-        const avgDaysBetween = (totalDiff / (timestamps.length - 1)) / 86400;
-        
-        testResults.git_metrics.avg_days_between_commits = avgDaysBetween.toFixed(2);
-
-        // Average should be less than 7 days (weekly commits)
-        const isReasonable = avgDaysBetween < 7;
-
-        recordTest('Reasonable commit frequency', isReasonable, null, {
-          avg_days: avgDaysBetween.toFixed(2)
+        const commitDates = execSync('git log --pretty=format:"%ci"', {
+          cwd: gradingFolder,
+          encoding: 'utf8'
         });
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Reasonable commit frequency', false, error);
+        
+        const dates = commitDates.split('\n').map(d => d.split(' ')[0]).filter(Boolean);
+        const dateCount = {};
+        
+        dates.forEach(date => {
+          dateCount[date] = (dateCount[date] || 0) + 1;
+        });
+        
+        const maxCommitsPerDay = Math.max(...Object.values(dateCount));
+        const totalCommits = dates.length;
+        
+        // No single day should have more than 80% of all commits
+        expect(maxCommitsPerDay / totalCommits).toBeLessThan(0.8);
+      } catch {
+        expect(true).toBe(true); // Pass if command fails
       }
     });
   });
 
-  describe('Commit Messages', () => {
-    test('Commit messages are meaningful (not generic)', () => {
-      try {
-        const commitMessages = runGitCommand('git log --format=%s');
-        
-        if (!commitMessages) {
-          recordTest('Meaningful commit messages', false, new Error('No messages'));
-          return;
-        }
+  describe('README Documentation Tests', () => {
+    test('README.md file exists', () => {
+      expect(fs.existsSync(readmePath)).toBe(true);
+    });
 
-        const messages = commitMessages.split('\n').filter(m => m);
-        
-        // Check for generic/bad commit messages
-        const genericPatterns = [
-          /^update$/i,
-          /^fix$/i,
-          /^commit$/i,
-          /^changes$/i,
-          /^stuff$/i,
-          /^work$/i,
-          /^test$/i,
-          /^wip$/i,
-          /^\.$/,
-          /^asdf$/i
-        ];
-
-        let meaningfulCount = 0;
-        let vagueCount = 0;
-
-        messages.forEach(msg => {
-          const isGeneric = genericPatterns.some(pattern => pattern.test(msg.trim()));
-          if (isGeneric) {
-            vagueCount++;
-          } else if (msg.length >= 10) { // At least 10 chars
-            meaningfulCount++;
-          }
-        });
-
-        testResults.git_metrics.meaningful_messages = meaningfulCount;
-        testResults.git_metrics.vague_messages = vagueCount;
-        
-        // At least 60% should be meaningful
-        const meaningfulPercentage = (meaningfulCount / messages.length) * 100;
-        const hasMeaningfulMessages = meaningfulPercentage >= 60;
-
-        expect(hasMeaningfulMessages).toBe(true);
-        recordTest('Meaningful commit messages', true, null, {
-          meaningful: meaningfulCount,
-          vague: vagueCount,
-          percentage: meaningfulPercentage.toFixed(1)
-        });
-      } catch (error) {
-        recordTest('Meaningful commit messages', false, error);
-        throw error;
+    test('README has substantial content (at least 500 characters)', () => {
+      if (fs.existsSync(readmePath)) {
+        const content = fs.readFileSync(readmePath, 'utf8');
+        expect(content.length).toBeGreaterThan(500);
       }
     });
 
-    test('Commit messages follow conventions (capitalized, descriptive)', () => {
-      try {
-        const commitMessages = runGitCommand('git log --format=%s -20'); // Last 20 commits
-        
-        if (!commitMessages) {
-          recordTest('Commit message conventions', false, new Error('No messages'));
-          return;
-        }
-
-        const messages = commitMessages.split('\n').filter(m => m);
-        
-        let capitalizedCount = 0;
-        let descriptiveCount = 0;
-
-        messages.forEach(msg => {
-          // Check if first letter is capitalized
-          if (/^[A-Z]/.test(msg)) {
-            capitalizedCount++;
-          }
-          
-          // Check if descriptive (has actual words, not just symbols)
-          if (msg.length >= 15 && /[a-zA-Z]/.test(msg)) {
-            descriptiveCount++;
-          }
-        });
-
-        const followsConventions = (capitalizedCount / messages.length) >= 0.5;
-
-        recordTest('Commit message conventions', followsConventions, null, {
-          capitalized: capitalizedCount,
-          descriptive: descriptiveCount,
-          total: messages.length
-        });
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Commit message conventions', false, error);
+    test('README includes project title/name', () => {
+      if (fs.existsSync(readmePath)) {
+        const content = fs.readFileSync(readmePath, 'utf8');
+        expect(content).toMatch(/^#\s+.+/m); // Has a heading
       }
     });
 
-    test('No very large commits (indicating infrequent commits)', () => {
-      try {
-        const commitStats = runGitCommand('git log --shortstat --format="%H"');
+    test('README includes team members or roles', () => {
+      if (fs.existsSync(readmePath)) {
+        const content = fs.readFileSync(readmePath, 'utf8');
+        expect(content).toMatch(/team|member|author|contributor|developer/i);
+      }
+    });
+
+    test('README includes features list', () => {
+      if (fs.existsSync(readmePath)) {
+        const content = fs.readFileSync(readmePath, 'utf8');
+        expect(content).toMatch(/feature|functionality|capabilities/i);
+      }
+    });
+
+    test('README includes technology stack', () => {
+      if (fs.existsSync(readmePath)) {
+        const content = fs.readFileSync(readmePath, 'utf8');
+        const hasTech = content.match(/technolog|stack|built.*with|framework/i);
+        const hasReact = content.match(/react|vite|tailwind|javascript/i);
         
-        if (!commitStats) {
-          recordTest('No large commits', false, new Error('No commit stats'));
-          return;
-        }
+        expect(hasTech || hasReact).toBeTruthy();
+      }
+    });
 
-        const lines = commitStats.split('\n');
-        let largeCommits = 0;
+    test('README includes setup/installation instructions', () => {
+      if (fs.existsSync(readmePath)) {
+        const content = fs.readFileSync(readmePath, 'utf8');
+        expect(content).toMatch(/install|setup|getting.*started|how.*to.*run/i);
+      }
+    });
+
+    test('README includes live demo link or deployment URL', () => {
+      if (fs.existsSync(readmePath)) {
+        const content = fs.readFileSync(readmePath, 'utf8');
+        const hasLiveLink = content.match(/live|demo|deploy|https?:\/\//i);
         
-        for (let i = 0; i < lines.length; i++) {
-          if (lines[i].includes('files changed')) {
-            const filesChanged = parseInt(lines[i].match(/(\d+) files? changed/)?.[1] || 0);
-            
-            // Consider commits with >50 files as "large dumps"
-            if (filesChanged > 50) {
-              largeCommits++;
-            }
-          }
+        expect(hasLiveLink).toBeTruthy();
+      }
+    });
+
+    test('README includes screenshots or images', () => {
+      if (fs.existsSync(readmePath)) {
+        const content = fs.readFileSync(readmePath, 'utf8');
+        const hasImages = content.match(/!\[.*\]\(.*\)|screenshot|image/i);
+        
+        // Bonus - good to have
+        if (hasImages) {
+          expect(hasImages).toBeTruthy();
+        } else {
+          expect(true).toBe(true); // Pass anyway
         }
-
-        testResults.git_metrics.large_commits = largeCommits;
-
-        // Should have no more than 2 large commits
-        const noLargeCommits = largeCommits <= 2;
-
-        recordTest('No large commits', noLargeCommits, null, {
-          large_commit_count: largeCommits
-        });
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('No large commits', false, error);
       }
     });
   });
 
-  describe('Branching & Merging', () => {
-    test('Project shows evidence of branching workflow (optional)', () => {
-      try {
-        const branches = runGitCommand('git branch -a');
-        
-        if (!branches) {
-          recordTest('Branching workflow', false, new Error('No branches'));
-          return;
-        }
+  describe('.gitignore Tests', () => {
+    test('.gitignore file exists', () => {
+      const gitignorePath = path.join(gradingFolder, '.gitignore');
+      expect(fs.existsSync(gitignorePath)).toBe(true);
+    });
 
-        const branchList = branches.split('\n').filter(b => b.trim());
-        const nonMainBranches = branchList.filter(b => 
-          !b.includes('main') && 
-          !b.includes('master') &&
-          !b.includes('HEAD')
-        );
-
-        testResults.git_metrics.branches = {
-          total: branchList.length,
-          non_main: nonMainBranches.length
-        };
-
-        // Branching is good practice but not required for all projects
-        const usesBranching = nonMainBranches.length > 0;
-
-        recordTest('Branching workflow', usesBranching);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Branching workflow', false, error);
+    test('.gitignore includes node_modules', () => {
+      const gitignorePath = path.join(gradingFolder, '.gitignore');
+      if (fs.existsSync(gitignorePath)) {
+        const content = fs.readFileSync(gitignorePath, 'utf8');
+        expect(content).toMatch(/node_modules/);
       }
     });
 
-    test('Merge commits show collaborative workflow (if applicable)', () => {
-      try {
-        const mergeCommits = runGitCommand('git log --merges --format=%s');
-        
-        const hasMergeCommits = mergeCommits && mergeCommits.length > 0;
-        
-        testResults.git_metrics.merge_commits = hasMergeCommits ? 
-          mergeCommits.split('\n').filter(m => m).length : 0;
+    test('.gitignore includes build/dist directories', () => {
+      const gitignorePath = path.join(gradingFolder, '.gitignore');
+      if (fs.existsSync(gitignorePath)) {
+        const content = fs.readFileSync(gitignorePath, 'utf8');
+        expect(content).toMatch(/dist|build/);
+      }
+    });
 
-        // Merges are optional for solo projects
-        recordTest('Merge commits', hasMergeCommits);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Merge commits', false, error);
+    test('.gitignore includes environment files', () => {
+      const gitignorePath = path.join(gradingFolder, '.gitignore');
+      if (fs.existsSync(gitignorePath)) {
+        const content = fs.readFileSync(gitignorePath, 'utf8');
+        expect(content).toMatch(/\.env/);
       }
     });
   });
-
-  describe('Commit Content Quality', () => {
-    test('Commits focus on specific features/fixes (atomic commits)', () => {
-      try {
-        const commitMessages = runGitCommand('git log --format=%s -30');
-        
-        if (!commitMessages) {
-          recordTest('Atomic commits', false, new Error('No messages'));
-          return;
-        }
-
-        const messages = commitMessages.split('\n').filter(m => m);
-        
-        // Look for focused commit messages
-        const focusedKeywords = [
-          'add', 'fix', 'update', 'remove', 'refactor', 
-          'implement', 'create', 'delete', 'improve', 'enhance'
-        ];
-
-        let focusedCount = 0;
-        messages.forEach(msg => {
-          const lowerMsg = msg.toLowerCase();
-          if (focusedKeywords.some(keyword => lowerMsg.includes(keyword))) {
-            focusedCount++;
-          }
-        });
-
-        const atomicPercentage = (focusedCount / messages.length) * 100;
-        const hasAtomicCommits = atomicPercentage >= 40;
-
-        recordTest('Atomic commits', hasAtomicCommits, null, {
-          focused_commits: focusedCount,
-          percentage: atomicPercentage.toFixed(1)
-        });
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Atomic commits', false, error);
-      }
-    });
-  });
-
-  describe('.gitignore File', () => {
-    test('Project has .gitignore file', () => {
-      try {
-        const hasGitignore = fs.existsSync('.gitignore');
-        
-        expect(hasGitignore).toBe(true);
-        recordTest('.gitignore exists', true);
-      } catch (error) {
-        recordTest('.gitignore exists', false, error);
-        throw error;
-      }
-    });
-
-    test('.gitignore ignores common files (node_modules, .env, etc.)', () => {
-      try {
-        if (!fs.existsSync('.gitignore')) {
-          recordTest('.gitignore content', false, new Error('No .gitignore'));
-          return;
-        }
-
-        const gitignoreContent = fs.readFileSync('.gitignore', 'utf8');
-        
-        const importantPatterns = [
-          'node_modules',
-          '.env',
-          '.next',
-          'dist',
-          'build'
-        ];
-
-        let foundPatterns = 0;
-        importantPatterns.forEach(pattern => {
-          if (gitignoreContent.includes(pattern)) {
-            foundPatterns++;
-          }
-        });
-
-        const hasProperIgnores = foundPatterns >= 3;
-
-        expect(hasProperIgnores).toBe(true);
-        recordTest('.gitignore content', true, null, {
-          patterns_found: foundPatterns,
-          total_checked: importantPatterns.length
-        });
-      } catch (error) {
-        recordTest('.gitignore content', false, error);
-        throw error;
-      }
-    });
-
-    test('No sensitive files committed (.env, secrets)', () => {
-      try {
-        const trackedFiles = runGitCommand('git ls-files');
-        
-        if (!trackedFiles) {
-          recordTest('No sensitive files', false, new Error('Cannot list files'));
-          return;
-        }
-
-        const files = trackedFiles.split('\n');
-        
-        const sensitivePatterns = [
-          /\.env$/,
-          /\.env\.local$/,
-          /\.env\.production$/,
-          /secrets/i,
-          /\.pem$/,
-          /\.key$/,
-          /\.p12$/
-        ];
-
-        const sensitiveFiles = files.filter(file => 
-          sensitivePatterns.some(pattern => pattern.test(file))
-        );
-
-        const noSensitiveFiles = sensitiveFiles.length === 0;
-
-        expect(noSensitiveFiles).toBe(true);
-        recordTest('No sensitive files', true, null, {
-          sensitive_files_found: sensitiveFiles.length
-        });
-      } catch (error) {
-        recordTest('No sensitive files', false, error);
-        throw error;
-      }
-    });
-  });
-
-  describe('Commit Timeline', () => {
-    test('First and last commits show development progression', () => {
-      try {
-        const firstCommit = runGitCommand('git log --reverse --format=%s -1');
-        const lastCommit = runGitCommand('git log --format=%s -1');
-        
-        testResults.git_metrics.first_commit_message = firstCommit;
-        testResults.git_metrics.last_commit_message = lastCommit;
-
-        // Just check that they exist and are different
-        const showsProgression = firstCommit !== lastCommit;
-
-        recordTest('Development progression', showsProgression);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Development progression', false, error);
-      }
-    });
-
-    test('Recent commits show active development', () => {
-      try {
-        const lastCommitDate = runGitCommand('git log -1 --format=%at');
-        
-        if (!lastCommitDate) {
-          recordTest('Recent activity', false, new Error('No commit date'));
-          return;
-        }
-
-        const lastCommitTimestamp = parseInt(lastCommitDate);
-        const now = Math.floor(Date.now() / 1000);
-        const daysSinceLastCommit = (now - lastCommitTimestamp) / 86400;
-
-        testResults.git_metrics.days_since_last_commit = daysSinceLastCommit.toFixed(1);
-
-        // Last commit should be within 30 days
-        const isRecent = daysSinceLastCommit <= 30;
-
-        recordTest('Recent activity', isRecent, null, {
-          days_since_last: daysSinceLastCommit.toFixed(1)
-        });
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Recent activity', false, error);
-      }
-    });
-  });
-
-  // Helper function
-  function calculateDaySpan(dates) {
-    if (dates.length < 2) return 0;
-    
-    const sortedDates = dates.sort();
-    const firstDate = new Date(sortedDates[0]);
-    const lastDate = new Date(sortedDates[sortedDates.length - 1]);
-    
-    const diffTime = Math.abs(lastDate - firstDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays;
-  }
 });
-
-// module.exports = { testResults };

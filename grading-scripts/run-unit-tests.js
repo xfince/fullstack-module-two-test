@@ -24,34 +24,22 @@ async function runUnitTests() {
 
   console.error('🧪 Running Unit Tests...\n');
 
-  // Define all test suites with their criterion mapping
+  // Define all test suites with their criterion mapping (Module 2 - React/Vite)
   const testSuites = [
-    // Backend Tests
-    { name: 'API Endpoints', file: 'tests/backend/api-endpoints.test.js', criterion: 'criterion_3' },
-    { name: 'Authentication', file: 'tests/backend/auth.test.js', criterion: 'criterion_5' },
-    { name: 'Database', file: 'tests/backend/database.test.js', criterion: 'criterion_4' },
-    { name: 'Middleware', file: 'tests/backend/middleware.test.js', criterion: 'criterion_3' },
-    { name: 'Error Handling', file: 'tests/backend/error-handling.test.js', criterion: 'criterion_3' },
+    // Frontend Component Tests
+    { name: 'Components', file: 'tests/frontend/components.test.js', criteria: ['criterion_1', 'criterion_2', 'criterion_3', 'criterion_5', 'criterion_6', 'criterion_7', 'criterion_8'] },
+    { name: 'React Hooks', file: 'tests/frontend/hooks.test.js', criteria: ['criterion_1', 'criterion_2', 'criterion_8'] },
+    { name: 'Routing', file: 'tests/frontend/routing.test.js', criterion: 'criterion_4' },
     
     // Integration Tests
-    { name: 'API Integration', file: 'tests/integration/api-calls.test.js', criterion: 'criterion_6' },
-    { name: 'Data Flow', file: 'tests/integration/data-flow.test.js', criterion: 'criterion_6' },
+    { name: 'Data Flow', file: 'tests/integration/data-flow.test.js', criteria: ['criterion_3', 'criterion_5', 'criterion_8'] },
     
     // Deployment Tests
-    { name: 'Deployment', file: 'tests/deployment/url-accessibility.test.js', criterion: 'criterion_16' },
-    
-    // Performance Tests
-    { name: 'Performance', file: 'tests/performance/load-time.test.js', criterion: 'criterion_14' },
-    
-    // Frontend Tests
-    { name: 'Components', file: 'tests/frontend/components.test.js', criterion: 'criterion_2' },
-    { name: 'Hooks', file: 'tests/frontend/hooks.test.js', criterion: 'criterion_2' },
-    { name: 'Routing', file: 'tests/frontend/routing.test.js', criterion: 'criterion_2' },
+    { name: 'URL Accessibility', file: 'tests/deployment/url-accessibility.test.js', criterion: 'criterion_11' },
+    { name: 'Deployment Functionality', file: 'tests/deployment/functionality.test.js', criterion: 'criterion_11' },
     
     // System Tests
-    { name: 'Git History', file: 'tests/git/commit-history.test.js', criterion: 'criterion_10' },
-    { name: 'Security', file: 'tests/security/env-variables.test.js', criterion: 'criterion_13' },
-    { name: 'TypeScript & Testing', file: 'tests/typescript/type-checking.test.js', criteria: ['criterion_9', 'criterion_11'] }
+    { name: 'Git History', file: 'tests/git/commit-history.test.js', criterion: 'criterion_10' }
   ];
 
   // Run each test suite
@@ -163,14 +151,15 @@ async function runUnitTests() {
 function mapTestsToCriteria(testSuites) {
   const criteriaScores = {};
 
-  // Initialize all criteria
-  for (let i = 1; i <= 16; i++) {
+  // Initialize all criteria (Module 2 has 11 criteria)
+  for (let i = 1; i <= 11; i++) {
+    const maxScore = i === 8 ? 10 : (i === 3 || i === 4 || i === 5) ? 5 : (i === 10) ? 3 : (i === 11) ? 2 : 4;
     criteriaScores[`criterion_${i}`] = {
       total_tests: 0,
       passed: 0,
       failed: 0,
       score: 0,
-      max_score: 4
+      max_score: maxScore
     };
   }
 
@@ -196,19 +185,22 @@ function mapTestsToCriteria(testSuites) {
     }
   });
 
-  // Calculate scores (0-4 scale based on pass percentage)
-  Object.values(criteriaScores).forEach(criterion => {
+  // Calculate scores (scaled to max_score based on pass percentage)
+  Object.entries(criteriaScores).forEach(([criterionId, criterion]) => {
     if (criterion.total_tests > 0) {
       const passRate = criterion.passed / criterion.total_tests;
+      const maxScore = criterion.max_score;
       
-      // Scale to 0-4
-      if (passRate >= 0.9) criterion.score = 4.0;      // Excellent: 90%+
-      else if (passRate >= 0.75) criterion.score = 3.5; // Good-Excellent: 75-89%
-      else if (passRate >= 0.6) criterion.score = 3.0;  // Good: 60-74%
-      else if (passRate >= 0.5) criterion.score = 2.5;  // Fair-Good: 50-59%
-      else if (passRate >= 0.4) criterion.score = 2.0;  // Fair: 40-49%
-      else if (passRate >= 0.25) criterion.score = 1.5; // Poor-Fair: 25-39%
-      else criterion.score = 1.0;                        // Poor: <25%
+      // Scale based on pass rate
+      if (passRate >= 0.9) criterion.score = maxScore * 1.0;      // Excellent: 90%+
+      else if (passRate >= 0.75) criterion.score = maxScore * 0.875; // Good-Excellent: 75-89%
+      else if (passRate >= 0.6) criterion.score = maxScore * 0.75;  // Good: 60-74%
+      else if (passRate >= 0.5) criterion.score = maxScore * 0.625;  // Fair-Good: 50-59%
+      else if (passRate >= 0.4) criterion.score = maxScore * 0.5;  // Fair: 40-49%
+      else if (passRate >= 0.25) criterion.score = maxScore * 0.375; // Poor-Fair: 25-39%
+      else criterion.score = maxScore * 0.25;                        // Poor: <25%
+      
+      criterion.score = parseFloat(criterion.score.toFixed(2));
     }
   });
 

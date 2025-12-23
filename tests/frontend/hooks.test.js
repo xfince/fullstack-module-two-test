@@ -1,643 +1,269 @@
 /**
  * tests/frontend/hooks.test.js
  * 
- * Tests for React hooks usage and state management
- * Evaluates: Criterion 2 (Front-End Implementation)
+ * Tests for React Hooks implementation
+ * Covers: useState, useEffect, useRef usage across components
  */
 
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 
-const TEST_TIMEOUT = 30000;
+describe('React Hooks Tests', () => {
+  const gradingFolder = path.join(__dirname, '../../grading-folder');
+  const componentsPath = path.join(gradingFolder, 'src/components');
+  const pagesPath = path.join(gradingFolder, 'src/pages');
 
-describe('React Hooks & State Management Tests', () => {
-  let testResults = {
-    criterion_id: 'criterion_2',
-    subsection: 'hooks',
-    total_tests: 0,
-    passed: 0,
-    failed: 0,
-    details: [],
-    hooks_usage: {}
-  };
-
-  const recordTest = (testName, passed, error = null) => {
-    testResults.total_tests++;
-    if (passed) {
-      testResults.passed++;
-    } else {
-      testResults.failed++;
+  // Helper functions
+  const fileExists = (filePath) => fs.existsSync(filePath);
+  const readFile = (filePath) => {
+    if (fileExists(filePath)) {
+      return fs.readFileSync(filePath, 'utf8');
     }
-    testResults.details.push({
-      test: testName,
-      passed,
-      error: error ? error.message : null
-    });
+    return '';
   };
 
-  afterAll(() => {
-    console.log(JSON.stringify(testResults, null, 2));
+  const getAllJSXFiles = () => {
+    const files = [];
+    
+    if (fileExists(componentsPath)) {
+      const componentFiles = fs.readdirSync(componentsPath)
+        .filter(f => f.endsWith('.jsx') || f.endsWith('.js'))
+        .map(f => path.join(componentsPath, f));
+      files.push(...componentFiles);
+    }
+    
+    if (fileExists(pagesPath)) {
+      const pageFiles = fs.readdirSync(pagesPath)
+        .filter(f => f.endsWith('.jsx') || f.endsWith('.js'))
+        .map(f => path.join(pagesPath, f));
+      files.push(...pageFiles);
+    }
+    
+    return files;
+  };
+
+  describe('useState Hook Tests', () => {
+    test('Project imports useState from React', () => {
+      const files = getAllJSXFiles();
+      let hasUseState = false;
+
+      files.forEach(file => {
+        const content = readFile(file);
+        if (content.match(/import.*useState.*from ['"]react['"]/)) {
+          hasUseState = true;
+        }
+      });
+
+      expect(hasUseState).toBe(true);
+    });
+
+    test('Components use useState for state management', () => {
+      const files = getAllJSXFiles();
+      let useStateCount = 0;
+
+      files.forEach(file => {
+        const content = readFile(file);
+        const matches = content.match(/useState\(/g);
+        if (matches) {
+          useStateCount += matches.length;
+        }
+      });
+
+      expect(useStateCount).toBeGreaterThan(0);
+    });
+
+    test('Header uses useState for theme toggle', () => {
+      const headerPath = path.join(componentsPath, 'Header.jsx');
+      const content = readFile(headerPath);
+      
+      expect(content).toMatch(/useState/);
+      expect(content).toMatch(/theme|dark|light/i);
+    });
+
+    test('Form uses useState for form data', () => {
+      const formPath = path.join(componentsPath, 'Form.jsx');
+      const content = readFile(formPath);
+      
+      expect(content).toMatch(/useState/);
+    });
+
+    test('Hero/Carousel uses useState for slide management', () => {
+      const heroPath = path.join(componentsPath, 'Hero.jsx');
+      const content = readFile(heroPath);
+      
+      const hasUseState = content.includes('useState');
+      const hasSlideLogic = content.match(/slide|current|index|active/i);
+      
+      expect(hasUseState || hasSlideLogic).toBeTruthy();
+    });
   });
 
-  describe('useState Hook', () => {
-    test('Project uses useState for state management', () => {
-      try {
-        const { files, usesHook } = checkHookUsage('useState');
-        
-        testResults.hooks_usage.useState = {
-          used: usesHook,
-          file_count: files.length
-        };
+  describe('useEffect Hook Tests', () => {
+    test('Project imports useEffect from React', () => {
+      const files = getAllJSXFiles();
+      let hasUseEffect = false;
 
-        expect(usesHook).toBe(true);
-        recordTest('useState usage', true);
-      } catch (error) {
-        recordTest('useState usage', false, error);
-        throw error;
-      }
-    });
-
-    test('useState is imported correctly', () => {
-      try {
-        const hasCorrectImport = checkCorrectImport('useState');
-        
-        expect(hasCorrectImport).toBe(true);
-        recordTest('useState import', true);
-      } catch (error) {
-        recordTest('useState import', false, error);
-        throw error;
-      }
-    });
-
-    test('State updates follow immutability patterns', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'grading-folder/frontend/pages',
-          'components',
-          'pages'
-        ];
-
-        let followsImmutability = false;
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx') || f.endsWith('.js')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Look for immutable state update patterns
-              if (content.includes('useState') &&
-                  (content.includes('...') || // spread operator
-                   content.includes('map(') ||
-                   content.includes('filter(') ||
-                   content.includes('concat('))) {
-                followsImmutability = true;
-                break;
-              }
-            }
-            
-            if (followsImmutability) break;
-          }
+      files.forEach(file => {
+        const content = readFile(file);
+        if (content.match(/import.*useEffect.*from ['"]react['"]/)) {
+          hasUseEffect = true;
         }
+      });
 
-        recordTest('Immutability patterns', followsImmutability);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Immutability patterns', false, error);
-      }
+      expect(hasUseEffect).toBe(true);
+    });
+
+    test('Components use useEffect for side effects', () => {
+      const files = getAllJSXFiles();
+      let useEffectCount = 0;
+
+      files.forEach(file => {
+        const content = readFile(file);
+        const matches = content.match(/useEffect\(/g);
+        if (matches) {
+          useEffectCount += matches.length;
+        }
+      });
+
+      expect(useEffectCount).toBeGreaterThan(0);
+    });
+
+    test('Header uses useEffect for sticky navbar', () => {
+      const headerPath = path.join(componentsPath, 'Header.jsx');
+      const content = readFile(headerPath);
+      
+      expect(content).toMatch(/useEffect/);
+      expect(content).toMatch(/scroll/i);
+    });
+
+    test('Header uses useEffect for theme persistence', () => {
+      const headerPath = path.join(componentsPath, 'Header.jsx');
+      const content = readFile(headerPath);
+      
+      const hasUseEffect = content.includes('useEffect');
+      const hasLocalStorage = content.includes('localStorage');
+      const hasTheme = content.match(/theme|dark|light/i);
+      
+      expect(hasUseEffect && (hasLocalStorage || hasTheme)).toBe(true);
+    });
+
+    test('Hero uses useEffect for autoplay', () => {
+      const heroPath = path.join(componentsPath, 'Hero.jsx');
+      const content = readFile(heroPath);
+      
+      const hasUseEffect = content.includes('useEffect');
+      const hasInterval = content.match(/setInterval|setTimeout/);
+      
+      expect(hasUseEffect || hasInterval).toBeTruthy();
+    });
+
+    test('useEffect hooks have dependency arrays', () => {
+      const files = getAllJSXFiles();
+      let properUseEffectUsage = false;
+
+      files.forEach(file => {
+        const content = readFile(file);
+        // Check for useEffect with dependency array pattern
+        if (content.match(/useEffect\([^)]+\),\s*\[/)) {
+          properUseEffectUsage = true;
+        }
+      });
+
+      expect(properUseEffectUsage).toBe(true);
     });
   });
 
-  describe('useEffect Hook', () => {
-    test('Project uses useEffect for side effects', () => {
-      try {
-        const { files, usesHook } = checkHookUsage('useEffect');
-        
-        testResults.hooks_usage.useEffect = {
-          used: usesHook,
-          file_count: files.length
-        };
+  describe('useRef Hook Tests (Optional)', () => {
+    test('Check if project uses useRef for DOM references', () => {
+      const files = getAllJSXFiles();
+      let hasUseRef = false;
 
-        expect(usesHook).toBe(true);
-        recordTest('useEffect usage', true);
-      } catch (error) {
-        recordTest('useEffect usage', false, error);
-        throw error;
-      }
-    });
-
-    test('useEffect includes dependency arrays', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'grading-folder/frontend/pages',
-          'components',
-          'pages'
-        ];
-
-        let usesDependencies = false;
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Look for useEffect with dependency array
-              if (content.match(/useEffect\([^)]*,\s*\[/)) {
-                usesDependencies = true;
-                break;
-              }
-            }
-            
-            if (usesDependencies) break;
-          }
+      files.forEach(file => {
+        const content = readFile(file);
+        if (content.match(/useRef|ref=/)) {
+          hasUseRef = true;
         }
+      });
 
-        expect(usesDependencies).toBe(true);
-        recordTest('useEffect dependencies', true);
-      } catch (error) {
-        recordTest('useEffect dependencies', false, error);
-        throw error;
-      }
-    });
-
-    test('useEffect cleanup is implemented where needed', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'grading-folder/frontend/pages',
-          'components',
-          'pages'
-        ];
-
-        let hasCleanup = false;
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Look for cleanup functions (return in useEffect)
-              if (content.includes('useEffect') &&
-                  content.match(/useEffect\([^{]*{\s*[^}]*return\s*\(\)\s*=>/)) {
-                hasCleanup = true;
-                break;
-              }
-            }
-            
-            if (hasCleanup) break;
-          }
-        }
-
-        // Cleanup is advanced pattern, not always needed
-        recordTest('useEffect cleanup', hasCleanup);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('useEffect cleanup', false, error);
+      // This is optional, so we just log the result
+      if (hasUseRef) {
+        expect(hasUseRef).toBe(true);
+      } else {
+        expect(true).toBe(true); // Pass anyway as useRef is optional
       }
     });
   });
 
-  describe('useContext Hook', () => {
-    test('Project uses useContext for global state (if applicable)', () => {
-      try {
-        const { files, usesHook } = checkHookUsage('useContext');
-        
-        testResults.hooks_usage.useContext = {
-          used: usesHook,
-          file_count: files.length
-        };
+  describe('Custom Hooks or Advanced Patterns (Bonus)', () => {
+    test('Check for useContext usage (bonus)', () => {
+      const files = getAllJSXFiles();
+      let hasUseContext = false;
 
-        // useContext is good but not always necessary
-        recordTest('useContext usage', usesHook);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('useContext usage', false, error);
-      }
-    });
-
-    test('Context is properly created and provided', () => {
-      try {
-        const allDirs = [
-          'grading-folder/frontend',
-          'src'
-        ];
-
-        let hasContext = false;
-
-        for (const dir of allDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx') || f.endsWith('.js')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Look for Context creation
-              if (content.includes('createContext') ||
-                  content.includes('Context.Provider')) {
-                hasContext = true;
-                break;
-              }
-            }
-            
-            if (hasContext) break;
-          }
+      files.forEach(file => {
+        const content = readFile(file);
+        if (content.includes('useContext')) {
+          hasUseContext = true;
         }
+      });
 
-        recordTest('Context creation', hasContext);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Context creation', false, error);
+      // Bonus check - not required
+      if (hasUseContext) {
+        expect(hasUseContext).toBe(true);
+      } else {
+        expect(true).toBe(true); // Pass anyway
       }
     });
-  });
 
-  describe('Custom Hooks', () => {
-    test('Project uses custom hooks for reusable logic', () => {
-      try {
-        const hooksDirs = [
-          'grading-folder/frontend/hooks',
-          'grading-folder/frontend/src/hooks',
-          'hooks',
-          'src/hooks'
-        ];
+    test('Check for useMemo or useCallback (bonus)', () => {
+      const files = getAllJSXFiles();
+      let hasOptimizationHooks = false;
 
-        let hasCustomHooks = false;
-        let customHookFiles = [];
-
-        for (const dir of hooksDirs) {
-          if (fs.existsSync(dir)) {
-            customHookFiles = fs.readdirSync(dir).filter(f => 
-              f.startsWith('use') && (f.endsWith('.js') || f.endsWith('.ts'))
-            );
-            
-            if (customHookFiles.length > 0) {
-              hasCustomHooks = true;
-              break;
-            }
-          }
+      files.forEach(file => {
+        const content = readFile(file);
+        if (content.match(/useMemo|useCallback/)) {
+          hasOptimizationHooks = true;
         }
+      });
 
-        testResults.hooks_usage.custom_hooks = {
-          used: hasCustomHooks,
-          count: customHookFiles.length
-        };
-
-        // Custom hooks are advanced
-        recordTest('Custom hooks', hasCustomHooks);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Custom hooks', false, error);
-      }
-    });
-
-    test('Custom hooks follow naming convention (use prefix)', () => {
-      try {
-        const allDirs = [
-          'grading-folder/frontend',
-          'src'
-        ];
-
-        let customHooks = [];
-
-        for (const dir of allDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx') || f.endsWith('.js')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              const basename = path.basename(file, path.extname(file));
-              
-              // Look for custom hook definitions
-              if (basename.startsWith('use') && 
-                  (content.includes('useState') || content.includes('useEffect'))) {
-                customHooks.push(basename);
-              }
-            }
-          }
-        }
-
-        const followsConvention = customHooks.length > 0;
-
-        recordTest('Custom hook naming', followsConvention);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Custom hook naming', false, error);
-      }
-    });
-  });
-
-  describe('useCallback & useMemo Hooks', () => {
-    test('Project uses useCallback for memoization (optimization)', () => {
-      try {
-        const { files, usesHook } = checkHookUsage('useCallback');
-        
-        testResults.hooks_usage.useCallback = {
-          used: usesHook,
-          file_count: files.length
-        };
-
-        // useCallback is optimization, not required
-        recordTest('useCallback usage', usesHook);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('useCallback usage', false, error);
-      }
-    });
-
-    test('Project uses useMemo for expensive computations', () => {
-      try {
-        const { files, usesHook } = checkHookUsage('useMemo');
-        
-        testResults.hooks_usage.useMemo = {
-          used: usesHook,
-          file_count: files.length
-        };
-
-        // useMemo is optimization, not required
-        recordTest('useMemo usage', usesHook);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('useMemo usage', false, error);
-      }
-    });
-  });
-
-  describe('useRef Hook', () => {
-    test('Project uses useRef where appropriate', () => {
-      try {
-        const { files, usesHook } = checkHookUsage('useRef');
-        
-        testResults.hooks_usage.useRef = {
-          used: usesHook,
-          file_count: files.length
-        };
-
-        // useRef is useful but not always needed
-        recordTest('useRef usage', usesHook);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('useRef usage', false, error);
-      }
-    });
-  });
-
-  describe('useReducer Hook', () => {
-    test('Complex state uses useReducer (if applicable)', () => {
-      try {
-        const { files, usesHook } = checkHookUsage('useReducer');
-        
-        testResults.hooks_usage.useReducer = {
-          used: usesHook,
-          file_count: files.length
-        };
-
-        // useReducer is for complex state, not always needed
-        recordTest('useReducer usage', usesHook);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('useReducer usage', false, error);
-      }
-    });
-  });
-
-  describe('State Management Libraries', () => {
-    test('Redux/Zustand/other state library usage (if applicable)', () => {
-      try {
-        let packageJsonPath = path.join(process.cwd(), 'grading-folder', 'frontend', 'package.json');
-        if (!fs.existsSync(packageJsonPath)) {
-          packageJsonPath = path.join(process.cwd(), 'package.json');
-        }
-        let usesStateLibrary = false;
-        let stateLibrary = null;
-
-        if (fs.existsSync(packageJsonPath)) {
-          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-          const deps = {
-            ...packageJson.dependencies,
-            ...packageJson.devDependencies
-          };
-
-          if (deps.redux || deps['@reduxjs/toolkit']) {
-            usesStateLibrary = true;
-            stateLibrary = 'Redux';
-          } else if (deps.zustand) {
-            usesStateLibrary = true;
-            stateLibrary = 'Zustand';
-          } else if (deps.recoil) {
-            usesStateLibrary = true;
-            stateLibrary = 'Recoil';
-          } else if (deps.mobx) {
-            usesStateLibrary = true;
-            stateLibrary = 'MobX';
-          }
-        }
-
-        testResults.hooks_usage.state_library = {
-          used: usesStateLibrary,
-          library: stateLibrary
-        };
-
-        // State libraries are advanced, not required for all projects
-        recordTest('State management library', usesStateLibrary);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('State management library', false, error);
+      // Bonus check - not required
+      if (hasOptimizationHooks) {
+        expect(hasOptimizationHooks).toBe(true);
+      } else {
+        expect(true).toBe(true); // Pass anyway
       }
     });
   });
 
   describe('Hook Best Practices', () => {
-    test('Hooks are called at the top level (not conditionally)', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'grading-folder/frontend/pages',
-          'components',
-          'pages'
-        ];
+    test('Hooks are called at top level of components', () => {
+      const files = getAllJSXFiles();
+      let hasProperHookUsage = true;
 
-        let followsRules = true;
-        let violations = [];
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Check for hooks inside conditionals (rough heuristic)
-              const lines = content.split('\n');
-              for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                
-                if ((line.includes('if (') || line.includes('if(')) &&
-                    i + 1 < lines.length &&
-                    lines[i + 1].includes('use')) {
-                  violations.push(path.basename(file));
-                  followsRules = false;
-                  break;
-                }
-              }
-            }
-          }
+      files.forEach(file => {
+        const content = readFile(file);
+        // Check if hooks are not inside conditions (basic check)
+        const hasConditionalHooks = content.match(/if\s*\([^)]*\)\s*{[^}]*use(State|Effect|Ref)/);
+        if (hasConditionalHooks) {
+          hasProperHookUsage = false;
         }
+      });
 
-        recordTest('Hook rules compliance', followsRules);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Hook rules compliance', false, error);
-      }
+      expect(hasProperHookUsage).toBe(true);
     });
 
-    test('Hooks have appropriate dependency arrays (no missing deps)', () => {
-      try {
-        const componentDirs = [
-          'grading-folder/frontend/components',
-          'grading-folder/frontend/pages',
-          'components',
-          'pages'
-        ];
+    test('Component functions are properly named (PascalCase)', () => {
+      const files = getAllJSXFiles();
+      let properNaming = false;
 
-        let hasDependencyArrays = false;
-
-        for (const dir of componentDirs) {
-          if (fs.existsSync(dir)) {
-            const files = getAllFiles(dir).filter(f => 
-              f.endsWith('.jsx') || f.endsWith('.tsx')
-            );
-
-            for (const file of files) {
-              const content = fs.readFileSync(file, 'utf8');
-              
-              // Look for useEffect/useCallback/useMemo with deps
-              if (content.match(/(useEffect|useCallback|useMemo)\([^)]*,\s*\[/)) {
-                hasDependencyArrays = true;
-                break;
-              }
-            }
-            
-            if (hasDependencyArrays) break;
-          }
+      files.forEach(file => {
+        const content = readFile(file);
+        // Check for function or const component declarations
+        if (content.match(/function [A-Z]\w+|const [A-Z]\w+\s*=/)) {
+          properNaming = true;
         }
+      });
 
-        recordTest('Dependency arrays', hasDependencyArrays);
-        expect(true).toBe(true);
-      } catch (error) {
-        recordTest('Dependency arrays', false, error);
-      }
+      expect(properNaming).toBe(true);
     });
   });
-
-  // Helper functions
-  function checkHookUsage(hookName) {
-    const componentDirs = [
-      'grading-folder/frontend/components',
-      'grading-folder/frontend/pages',
-      'grading-folder/frontend/app',
-      'components',
-      'pages',
-      'app'
-    ];
-
-    let usesHook = false;
-    let filesWithHook = [];
-
-    for (const dir of componentDirs) {
-      if (fs.existsSync(dir)) {
-        const files = getAllFiles(dir).filter(f => 
-          f.endsWith('.jsx') || f.endsWith('.tsx') || f.endsWith('.js')
-        );
-
-        for (const file of files) {
-          const content = fs.readFileSync(file, 'utf8');
-          
-          if (content.includes(hookName)) {
-            usesHook = true;
-            filesWithHook.push(path.basename(file));
-          }
-        }
-      }
-    }
-
-    return { files: filesWithHook, usesHook };
-  }
-
-  function checkCorrectImport(hookName) {
-    const componentDirs = [
-      'grading-folder/frontend/components',
-      'grading-folder/frontend/pages',
-      'components',
-      'pages'
-    ];
-
-    let hasCorrectImport = false;
-
-    for (const dir of componentDirs) {
-      if (fs.existsSync(dir)) {
-        const files = getAllFiles(dir).filter(f => 
-          f.endsWith('.jsx') || f.endsWith('.tsx')
-        );
-
-        for (const file of files) {
-          const content = fs.readFileSync(file, 'utf8');
-          
-          // Check for proper import
-          if (content.match(new RegExp(`import.*${hookName}.*from ['"]react['"]`)) ||
-              content.match(new RegExp(`import.*{[^}]*${hookName}[^}]*}.*from ['"]react['"]`))) {
-            hasCorrectImport = true;
-            break;
-          }
-        }
-        
-        if (hasCorrectImport) break;
-      }
-    }
-
-    return hasCorrectImport;
-  }
-
-  function getAllFiles(dir, fileList = []) {
-    try {
-      if (fs.existsSync(dir)) {
-        const files = fs.readdirSync(dir);
-        
-        files.forEach(file => {
-          const filePath = path.join(dir, file);
-          const stat = fs.statSync(filePath);
-          
-          if (stat.isDirectory()) {
-            getAllFiles(filePath, fileList);
-          } else {
-            fileList.push(filePath);
-          }
-        });
-      }
-    } catch (error) {
-      // Ignore errors
-    }
-    
-    return fileList;
-  }
 });
-
-// module.exports = { testResults };
